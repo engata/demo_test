@@ -1,78 +1,192 @@
-from dash import Dash, dcc, html, Input, Output
 import plotly.graph_objects as go
+import dash_bootstrap_components as dbc
 import numpy as np
-from odeSolver import *
+import base64
+import time
 
-app = Dash(__name__)
-server = app.server
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output, State
+BS = "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+
+styles = {
+    'pre': {
+        'border': 'thin lightgrey solid',
+        'overflowX': 'scroll'
+    }
+}
+
+# Generate curve data
+t = np.linspace(0, 2*np.pi, 32)
+x = np.sin(t)
+y = np.cos(t)+1
+xPlate = np.array([-3,3])
+yPlate = np.array([0,0])
+
+xm = -2
+xM = 2
+ym = -3
+yM = 10
+
+N = 50
+
+
+
+app = Dash(__name__,external_stylesheets=[BS])
 
 app.layout = html.Div([
-    html.H4('Interactive color selection with simple Dash example'),
-    html.P("Select color:"),
-    dcc.Dropdown(
-        id="getting-started-x-dropdown",
-        options=['Gold', 'MediuTurquoise', 'LightGreen'],
-        value='Gold',
-        clearable=False,
-    ),
-    dcc.Graph(id="getting-started-x-graph"),
-])
+        dbc.Card(
+            dbc.CardBody([
+
+        dbc.Row([dbc.Col([html.Div([html.H4('Bouncing Ball'),html.P('Input Params'),
+        html.Div(
+        children=[dcc.Markdown('Plate Frequency $$[\omega]$$',mathjax=True),
+        dcc.Slider(0.1, 10, value=1,id="w0",tooltip={"placement": "bottom", "always_visible": True})]),
+        html.Div(
+        children=[html.P('Plate Displacement'),
+        dcc.Slider(0.1, 10, value=0.2,id="A0",tooltip={"placement": "bottom", "always_visible": True})]),
+        html.Div(
+        children=[html.P('Ball Initial Position'),
+        dcc.Slider(0, 5, value=1,id="x0",tooltip={"placement": "bottom", "always_visible": True})]),
+        html.Div(
+        children=[html.P('Ball Initial Velocity'),
+        dcc.Slider(-1, 1, value=0,id="v0",tooltip={"placement": "bottom", "always_visible": True})]),
+        html.Div(
+        children=[html.P('Coefficient of Restitution'),
+        dcc.Input(id='Coeff', type='number', min=0, max=1,value=0.99)]),
+        html.Div(
+        children=[html.P('Animation Speed'),
+        dcc.Slider(1, 100, value=10,id="AnimSpeed",tooltip={"placement": "bottom", "always_visible": True})]),
+        html.Div(
+        children=[html.P('Simulation Time'),
+        dcc.Slider(1, 100, value=10,id="Nframes",tooltip={"placement": "bottom", "always_visible": True})])]), ], width=3),
+        dbc.Col(dcc.Loading(
+            id="loading-1",
+            type="default",
+            children=dcc.Graph(id="loading-output-1")), width=5),
+        dbc.Col(dcc.Loading(
+            id="loading-2",
+            type="default",
+            children=dcc.Graph(id="loading-output-2")), width=3),    
+
+
+           
+    ])]))])
+
+
+
 
 
 @app.callback(
-    Output("getting-started-x-graph", "figure"), 
-    Input("getting-started-x-dropdown", "value"))
-def display_color(color):
-    rr = solve()
-    fig = go.Figure(
-        data=go.Bar(y=rr, # replace with your own data source
-                    marker_color=color))
-    return fig
+    Output("loading-output-1", "figure"),
+        Output("loading-output-2", "figure"),
+
+    Input('AnimSpeed', 'value'),
+    Input('w0','value'),
+    Input('A0','value'),
+    Input('x0','value'),
+    Input('v0','value'),
+    Input('Coeff','value'), Input('Nframes','value'))
+   
+# def solveDynamics(d):
 
 
 
-def dynamics(t,y,simVars):
-    y=y.reshape(y.size,1)
-    dxdt=np.zeros((y.size,1)) #Create vector
-    dxdt[0::2]=y[1::2]
-    dxdt[1]=(-4*y[0]/simVars["R"]*simVars["g"]*np.cos(y[0])-5*y[5]**2*np.sin(y[0])*np.cos(y[0])-6*y[5]*y[3])/5 #thetaddot
-    dxdt[5]=(2.5*y[5]*y[1]*np.sin(y[0])*np.cos(y[0])-1.5*(+y[5]*y[1]*np.sin(y[0]))*np.cos(y[0])+1.5*y[3]*y[1]*np.sin(y[0]))*4/(1-np.cos(y[0])**2)
-    dxdt[3]=-dxdt[5]*np.cos(y[0])+y[5]*y[1]*np.sin(y[0])#ksiddot
-    dxdt[6]=simVars["R"]*y[1]*np.sin(y[0])*np.sin(y[4])-simVars["R"]*y[3]*np.cos(y[4])-simVars["R"]*y[5]*np.cos(y[0])*np.cos(y[4])
-    dxdt[8]=-simVars["R"]*y[1]*np.sin(y[0])*np.cos(y[4])-simVars["R"]*y[3]*np.sin(y[4])-simVars["R"]*y[5]*np.sin(y[0])*np.cos(y[4])
-    dxdt[10]=simVars["R"]*y[1]*np.cos(y[0])
-    return dxdt.reshape(1,y.size)
+#         return xVec,yVec
 
-def createCoinData(i,odeObj):
-    pos=odeObj.resY[i][0::2]
-    thetaDum=np.linspace(0,2*np.pi,num=20)
-    xxx=odeObj.simVars["R"]*np.cos(thetaDum);yyy=odeObj.simVars["R"]*np.sin(thetaDum);zzz=np.zeros(20)
-    theta=pos[0];ksi=pos[1];phi=pos[2]
-    #pdb.set_trace()
-    rotMat=inv(np.array([[np.cos(ksi)*np.cos(phi)-np.sin(ksi)*np.sin(phi)*np.cos(theta),np.cos(ksi)*np.sin(phi)+np.sin(ksi)*np.cos(theta)*np.cos(phi),np.sin(ksi)*np.sin(theta)],[-np.sin(ksi)*np.cos(phi)-np.cos(ksi)*np.cos(theta)*np.sin(phi), -np.sin(ksi)*np.sin(phi)+np.cos(ksi)*np.cos(theta)*np.cos(phi), np.cos(ksi)*np.sin(theta)],[np.sin(phi)*np.sin(theta), -np.sin(theta)*np.cos(phi), np.cos(theta)]]))
-    posVec=np.zeros((3,1))
-    rotVec=np.zeros((xxx.size,3))
-    for iii in range(xxx.size):
-        posVec=[xxx[iii],yyy[iii],zzz[iii]]
-        rotVec[iii,:]=np.matmul(rotMat,posVec)
-    xData=rotVec[:,0]+pos[3];yData=rotVec[:,1]+pos[4];zData=rotVec[:,2]+pos[5]
-    #pdb.set_trace()
-    return {"xData":xData,"yData":yData,"zData":zData}
-def solve():
-    y0=np.zeros((1,12))
-    #Take initCond
-    file=open("iniCond.txt","r")
 
-    a=file.read().split('\n')
-    y0=np.asarray([[float(a[num]) for num in range(1,24,2)]])
-    R=float(a[25])
-    tEnd=float(a[27])
-    file.close()
-    solverEq=odeSolver(fun=dynamics,tSpan=[0,tEnd],iniCond=y0,iniStepSize=0.01,errorThresh=1e-6, maxStepSize=1e-1,simVars={"R":R,"g":9.81})
-    solverEq.solveSystem()
+def updateFigure(animSpeed,w0,A0,x0,v0,coeff,Nframes):
 
-    return solverEq.resTime
+    # xVec, yVec = solveDynamics(0)
+
+    t = 0; A = A0;dz0=v0;z0=x0;w=w0;g=9.81;
+    t0 = 0; Tol = animSpeed/1000;tf=Nframes;absTol = 1e-10;
+    z=10;ii=1;
+    yVec=[]; xVec=[];tVec=[];
+
+    while t<tf:
+        while z>0: 
+            t=t+Tol;
+            z=-A*np.sin(w*t)-0.5*g*t**2+(dz0+g*t0+A*w*np.cos(w*t0))*(t-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
+            yVec.append(A*np.sin(w*t)); xVec.append(z+yVec[-1]); tVec.append(t);
+        a=t-Tol;b=t; 
+        fc = 1;
+        while abs(fc)>absTol:
+            fa=-A*np.sin(w*a)-0.5*g*a**2+(dz0+g*t0+A*w*np.cos(w*t0))*(a-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
+            fb=-A*np.sin(w*b)-0.5*g*b**2+(dz0+g*t0+A*w*np.cos(w*t0))*(b-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
+            c=(a*fb-b*fa)/(fb-fa);
+            fc=-A*np.sin(w*c)-0.5*g*c**2+(dz0+g*t0+A*w*np.cos(w*t0))*(c-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
+            if fa*fc<0:
+                b=c;
+            else:
+                a=c;
+            
+            t=c;
+        
+        z=1;
+        dz0 = -coeff*(-A*w*np.cos(w*t)-g*t+(dz0+g*t0+A*w*np.cos(w*t0)));
+        y0 = A*np.sin(w*t);z0=0;t0 = t; yVec[-1]=y0; xVec[-1]=y0;  tVec[-1]= t;
+
+    Nframes = len(xVec)
+
+    fig1 = go.Figure(
+    data=[go.Scatter(x=x, y=y+x0,
+                     mode="lines",
+                     line=dict(width=2, color="blue")),
+        go.Scatter(x=xPlate, y=yPlate,
+                     mode="lines",
+                     line=dict(width=2, color="red"))],
+    layout=go.Layout(
+        xaxis=dict(range=[xm, xM], autorange=False, zeroline=False),
+        yaxis=dict(range=[ym, yM], autorange=False, zeroline=False),
+
+        title_text="Animation", hovermode="closest",
+        updatemenus=[dict(type="buttons",
+                          buttons=[dict(label="Play",
+                                        method="animate",
+                                        args = [None, {"frame": {"duration": 1/animSpeed*100, 
+                                                                        "redraw": False},
+                                                              "fromcurrent": True, 
+                                                              "transition": {"duration": 0}}])])]),
+    frames=[go.Frame(
+        data=[go.Scatter(
+            x=x,
+            y=y+xVec[k],
+            mode="lines",
+            line=dict(width=2, color="blue")),
+            go.Scatter(
+            x=xPlate,
+            y=yPlate+yVec[k],
+            mode="lines",
+            line=dict(width=2, color="red"))])#marker=dict(color="red", size=10))])
+        for k in range(Nframes)])
+    fig1.update_yaxes(scaleanchor="x",scaleratio=1)
+
+    phaseFig = go.Figure(
+    data=[go.Scatter(x=tVec, y=xVec,
+                     mode="lines",
+                     line=dict(width=2, color="blue"),name="Ball"),
+        go.Scatter(x=tVec, y=yVec,
+                     mode="lines",
+                     line=dict(width=2, color="red"),name="Plate")])
+    phaseFig.update_layout(xaxis_title="Time [s]",yaxis_title="Displacement")
+
+    fig1.update_layout(height = 600)
+
+
+# fig.show()
+
+    return fig1,phaseFig
+
+
 
 if __name__ == "__main__":
-
     app.run_server(debug=True)
+
+
+
+
+
+
+# # Create figure
+# 
+
