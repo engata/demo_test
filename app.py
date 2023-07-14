@@ -32,6 +32,7 @@ N = 50
 
 
 app = Dash(__name__,external_stylesheets=[BS])
+server = app.server
 
 app.layout = html.Div([
         dbc.Card(
