@@ -31,20 +31,19 @@ N = 50
 
 
 
-app = Dash(__name__,external_stylesheets=[BS])
+app = Dash(__name__,meta_tags=[{'name':'viewport','content':'width=device-width, initial-scale=1.5, maximum-scale=1.2, minimum-scale=0.5,'}],external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.layout = html.Div([
-        dbc.Card(
-            dbc.CardBody([
+
 
         dbc.Row([dbc.Col([html.Div([html.H4('Bouncing Ball'),html.P('Input Params'),
         html.Div(
         children=[dcc.Markdown('Plate Frequency $$[\omega]$$',mathjax=True),
-        dcc.Slider(0.1, 10, value=1,id="w0",tooltip={"placement": "bottom", "always_visible": True})]),
+        dcc.Slider(0.1, 10, value=2,id="w0",tooltip={"placement": "bottom", "always_visible": True})]),
         html.Div(
         children=[html.P('Plate Displacement'),
-        dcc.Slider(0.1, 10, value=0.2,id="A0",tooltip={"placement": "bottom", "always_visible": True})]),
+        dcc.Slider(0.1, 10, value=0.5,id="A0",tooltip={"placement": "bottom", "always_visible": True})]),
         html.Div(
         children=[html.P('Ball Initial Position'),
         dcc.Slider(0, 5, value=1,id="x0",tooltip={"placement": "bottom", "always_visible": True})]),
@@ -56,22 +55,60 @@ app.layout = html.Div([
         dcc.Input(id='Coeff', type='number', min=0, max=1,value=0.99)]),
         html.Div(
         children=[html.P('Animation Speed'),
-        dcc.Slider(1, 100, value=10,id="AnimSpeed",tooltip={"placement": "bottom", "always_visible": True})]),
+        dcc.Slider(1, 100, value=80,id="AnimSpeed",tooltip={"placement": "bottom", "always_visible": True})]),
         html.Div(
         children=[html.P('Simulation Time'),
-        dcc.Slider(1, 100, value=10,id="Nframes",tooltip={"placement": "bottom", "always_visible": True})])]), ], width=3),
+        dcc.Slider(1, 100, value=5,id="Nframes",tooltip={"placement": "bottom", "always_visible": True})])]), ], width=3,xs=12,lg=3),
         dbc.Col(dcc.Loading(
             id="loading-1",
             type="default",
-            children=dcc.Graph(id="loading-output-1")), width=5),
+            children=dcc.Graph(id="loading-output-1")), width=3,xs=12,lg=3),
         dbc.Col(dcc.Loading(
             id="loading-2",
             type="default",
-            children=dcc.Graph(id="loading-output-2")), width=3),    
+            children=dcc.Graph(id="loading-output-2")), width=6,xs=12,lg=6),    
 
 
            
-    ])]))])
+    ])])
+# app.layout = html.Div([
+#         dbc.Card(
+#             dbc.CardBody([
+
+#         dbc.Row([dbc.Col([html.Div([html.H4('Bouncing Ball'),html.P('Input Params'),
+#         html.Div(
+#         children=[dcc.Markdown('Plate Frequency $$[\omega]$$',mathjax=True),
+#         dcc.Slider(0.1, 10, value=1,id="w0",tooltip={"placement": "bottom", "always_visible": True})]),
+#         html.Div(
+#         children=[html.P('Plate Displacement'),
+#         dcc.Slider(0.1, 10, value=0.2,id="A0",tooltip={"placement": "bottom", "always_visible": True})]),
+#         html.Div(
+#         children=[html.P('Ball Initial Position'),
+#         dcc.Slider(0, 5, value=1,id="x0",tooltip={"placement": "bottom", "always_visible": True})]),
+#         html.Div(
+#         children=[html.P('Ball Initial Velocity'),
+#         dcc.Slider(-1, 1, value=0,id="v0",tooltip={"placement": "bottom", "always_visible": True})]),
+#         html.Div(
+#         children=[html.P('Coefficient of Restitution'),
+#         dcc.Input(id='Coeff', type='number', min=0, max=1,value=0.99)]),
+#         html.Div(
+#         children=[html.P('Animation Speed'),
+#         dcc.Slider(1, 100, value=10,id="AnimSpeed",tooltip={"placement": "bottom", "always_visible": True})]),
+#         html.Div(
+#         children=[html.P('Simulation Time'),
+#         dcc.Slider(1, 100, value=10,id="Nframes",tooltip={"placement": "bottom", "always_visible": True})])]), ], width=3),
+#         dbc.Col(dcc.Loading(
+#             id="loading-1",
+#             type="default",
+#             children=dcc.Graph(id="loading-output-1")), width=5),
+#         dbc.Col(dcc.Loading(
+#             id="loading-2",
+#             type="default",
+#             children=dcc.Graph(id="loading-output-2")), width=3),    
+
+
+           
+#     ])]))])
 
 
 
@@ -172,6 +209,7 @@ def updateFigure(animSpeed,w0,A0,x0,v0,coeff,Nframes):
     phaseFig.update_layout(xaxis_title="Time [s]",yaxis_title="Displacement")
 
     fig1.update_layout(height = 600)
+    fig1.layout.update(showlegend=False)
 
 
 # fig.show()
