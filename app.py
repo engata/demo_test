@@ -140,15 +140,17 @@ def updateFigure(animSpeed,w0,A0,x0,v0,coeff,Nframes):
     t0 = 0; Tol = animSpeed/1000;tf=Nframes;absTol = 1e-10;
     z=10;ii=1;
     yVec=[]; xVec=[];tVec=[];
-
-    while t<tf:
-        while z>0: 
+    flag = True
+    while t<tf and flag:
+        uu=1
+        while z>0 and flag: 
             t=t+Tol;
             z=-A*np.sin(w*t)-0.5*g*t**2+(dz0+g*t0+A*w*np.cos(w*t0))*(t-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
             yVec.append(A*np.sin(w*t)); xVec.append(z+yVec[-1]); tVec.append(t);
+            uu+=1
         a=t-Tol;b=t; 
-        fc = 1;
-        while abs(fc)>absTol:
+        fc = 1;ii=1
+        while abs(fc)>absTol and uu>2 and flag:
             fa=-A*np.sin(w*a)-0.5*g*a**2+(dz0+g*t0+A*w*np.cos(w*t0))*(a-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
             fb=-A*np.sin(w*b)-0.5*g*b**2+(dz0+g*t0+A*w*np.cos(w*t0))*(b-t0)+A*np.sin(w*t0)+0.5*g*t0**2+z0;
             c=(a*fb-b*fa)/(fb-fa);
@@ -159,6 +161,12 @@ def updateFigure(animSpeed,w0,A0,x0,v0,coeff,Nframes):
                 a=c;
             
             t=c;
+            ii+=1;
+            # print(flag)
+            if ii>100:
+                flag=False
+                print('sszx')
+
         
         z=1;
         dz0 = -coeff*(-A*w*np.cos(w*t)-g*t+(dz0+g*t0+A*w*np.cos(w*t0)));
